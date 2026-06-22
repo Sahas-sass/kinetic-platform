@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/utils/supabase';
 import { Sparkles, Eye, EyeOff, Loader2 } from 'lucide-react';
@@ -10,11 +10,25 @@ export default function LoginPage() {
   const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [pageLoading, setPageLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   // Form States
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+
+  // Reverse Auth Guard: Redirect to dashboard if already logged in
+  useEffect(() => {
+    const checkActiveSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        router.replace('/dashboard');
+      } else {
+        setPageLoading(false);
+      }
+    };
+    checkActiveSession();
+  }, [router]);
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -22,7 +36,6 @@ export default function LoginPage() {
     setErrorMsg(null);
 
     try {
-      // Supabase Sign-in invocation
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -38,6 +51,15 @@ export default function LoginPage() {
       setLoading(false);
     }
   };
+
+  // Prevent flashing the login form while checking the session
+  if (pageLoading) {
+    return (
+      <div className="w-full min-h-screen bg-[#F0F6FE] flex items-center justify-center">
+        <Loader2 className="w-8 h-8 text-[#0C83EF] animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="w-full min-h-screen bg-[#F0F6FE] flex items-center justify-center p-4 lg:p-8 font-sans">
