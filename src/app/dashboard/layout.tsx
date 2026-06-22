@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/utils/supabase';
 import { Loader2 } from 'lucide-react';
+import Sidebar from '@/components/dashboard/Sidebar'; // <-- Import the new Sidebar
 
 export default function DashboardLayout({
   children,
@@ -15,11 +16,9 @@ export default function DashboardLayout({
 
   useEffect(() => {
     const checkAuth = async () => {
-      // Direct session check from client storage
       const { data: { session } } = await supabase.auth.getSession();
       
       if (!session) {
-        // Use replace instead of push so they can't click "back" into the dashboard
         router.replace('/login');
       } else {
         setIsAuthenticated(true);
@@ -28,7 +27,6 @@ export default function DashboardLayout({
 
     checkAuth();
 
-    // Listen for real-time authentication state changes (e.g., token expiration, logging out)
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_OUT' || !session) {
         setIsAuthenticated(false);
@@ -41,7 +39,6 @@ export default function DashboardLayout({
     };
   }, [router]);
 
-  // Force a clean loading screen until the database confirms the active session
   if (isAuthenticated === null) {
     return (
       <div className="w-full min-h-screen bg-[#F0F6FE] flex flex-col items-center justify-center gap-3">
@@ -51,6 +48,15 @@ export default function DashboardLayout({
     );
   }
 
-  // Render the dashboard dashboard layout and child components safely if logged in
-  return <>{children}</>;
+  // 👇 Update the layout structure here to include the Sidebar
+  return (
+    <div className="flex min-h-screen bg-[#F0F6FE]">
+      <Sidebar />
+      <main className="flex-1 overflow-y-auto p-8">
+        <div className="max-w-6xl mx-auto">
+          {children}
+        </div>
+      </main>
+    </div>
+  );
 }
