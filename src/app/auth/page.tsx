@@ -17,6 +17,7 @@ export default function AuthPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [agreeTerms, setAgreeTerms] = useState(false);
+  const [domain, setDomain] = useState('graphic_design');
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,15 +36,15 @@ export default function AuthPage() {
           options: {
             data: {
               full_name: fullName,
-              market_readiness_level: 1,
-              negotiation_skill_score: 50,
+              domain: domain, // Passed to user metadata to trigger automated profile entry replication
             },
           },
         });
 
         if (error) throw error;
         
-        alert('Registration successful! Check your email for verification link.');
+        alert('Registration successful! Please check your email for a verification link.');
+        setIsSignUp(false); // Swap view panel to sign-in frame
       } else {
         const { data, error } = await supabase.auth.signInWithPassword({
           email,
@@ -52,7 +53,8 @@ export default function AuthPage() {
 
         if (error) throw error;
         
-        router.push('/'); 
+        // Dynamic push forward into the secure workspace dashboard path
+        router.push('/dashboard'); 
       }
     } catch (err: any) {
       setErrorMsg(err.message || 'An unexpected error occurred.');
@@ -82,7 +84,7 @@ export default function AuthPage() {
               Welcome to Kinetic
             </h2>
             <p className="text-sm text-blue-50/90 leading-relaxed max-w-[280px]">
-              Create your account to unlock premium features, evaluate your technical skills, and embark on an exciting freelancing journey with us![cite: 1]
+              Create your account to unlock premium features, evaluate your technical skills, and embark on an exciting freelancing journey with us!
             </p>
           </div>
         </div>
@@ -102,7 +104,7 @@ export default function AuthPage() {
             
             {/* Form Headers */}
             <h1 className="text-2xl lg:text-3xl font-black text-gray-900 mb-2">
-              {isSignUp ? 'Create you account' : 'Sign in to platform'}
+              {isSignUp ? 'Create your account' : 'Sign in to platform'}
             </h1>
             <p className="text-xs text-gray-400 font-medium mb-6">
               Please enter your details to keep monitoring your freelance analytics.
@@ -119,23 +121,45 @@ export default function AuthPage() {
             <form onSubmit={handleAuth} className="space-y-4">
               
               {isSignUp && (
-                <div>
-                  <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">Full name</label>
-                  <input 
-                    type="text" 
-                    required
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
-                    placeholder="Enter Full name"
-                    className="w-full bg-[#F3F7FD] border border-transparent focus:border-blue-400 focus:bg-white rounded-xl px-4 py-3 text-sm text-gray-800 placeholder-gray-400 outline-none transition-all font-medium"
-                  />
-                </div>
+                <>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">Full name</label>
+                    <input 
+                      type="text" 
+                      required
+                      value={fullName}
+                      onChange={(e) => setFullName(e.target.value)}
+                      placeholder="Enter Full name"
+                      className="w-full bg-[#F3F7FD] border border-transparent focus:border-blue-400 focus:bg-white rounded-xl px-4 py-3 text-sm text-gray-800 placeholder-gray-400 outline-none transition-all font-medium"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">Select Domain Track</label>
+                    <div className="relative">
+                      <select
+                        value={domain}
+                        onChange={(e) => setDomain(e.target.value)}
+                        className="w-full bg-[#F3F7FD] border border-transparent focus:border-blue-400 focus:bg-white rounded-xl px-4 py-3 text-sm text-gray-800 outline-none transition-all font-medium appearance-none"
+                      >
+                        <option value="graphic_design">Graphic Design</option>
+                        <option value="ui_ux">UI / UX Design</option>
+                        <option value="software_dev">Software Development</option>
+                      </select>
+                      <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-400">
+                        <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+                          <path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/>
+                        </svg>
+                      </div>
+                    </div>
+                  </div>
+                </>
               )}
 
               <div>
                 <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">Email</label>
                 <input 
-                  type="auto" 
+                  type="email" 
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
