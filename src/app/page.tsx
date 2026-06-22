@@ -2,6 +2,9 @@ import Navbar from "@/components/Navbar";
 import Hero from "@/components/Hero";
 import Features from "@/components/Features";
 import Workflow from "@/components/Workflow";
+import Simulator from "@/components/Simulator";
+import TargetAudience from "@/components/TargetAudience";
+import Footer from "@/components/Footer";
 
 export default function Home() {
   return (
@@ -10,6 +13,9 @@ export default function Home() {
       <Hero />
       <Features />
       <Workflow />
+      <Simulator />
+      <TargetAudience />
+      <Footer />
     </main>
   );
 }
