@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image'; // 1. Import Next.js Image component
 import { Menu } from 'lucide-react';
 
 export default function Navbar() {
@@ -8,13 +9,17 @@ export default function Navbar() {
         
         {/* Logo Area */}
         <Link href="/" className="flex items-center gap-3">
-          {/* Replace with actual image tag once exported */}
-          <div className="w-9 h-9 rounded-full bg-kinetic-primary flex items-center justify-center text-white font-bold italic shadow-md">
-            K
-          </div>
-          <span className="text-2xl font-extrabold text-kinetic-primary tracking-tight">
+          {/* 2. Replace the div with the Next.js Image tag */}
+          <Image 
+            src="/logo.png" 
+            alt="Kinetic Logo" 
+            width={250}  /* Matches the w-9 class (9 * 4px = 36px) */
+            height={36} /* Matches the h-9 class */
+            className="object-contain drop-shadow-sm"
+          />
+          {/* <span className="text-2xl font-extrabold text-kinetic-primary tracking-tight">
             KINETIC
-          </span>
+          </span> */}
         </Link>
 
         {/* Desktop Links */}
