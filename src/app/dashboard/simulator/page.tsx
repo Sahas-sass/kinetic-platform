@@ -16,6 +16,8 @@ export default function SimulatorPage() {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [showModal, setShowModal] = useState(false);
+  const [feedback, setFeedback] = useState("");
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -27,11 +29,11 @@ export default function SimulatorPage() {
       const response = await fetch("/api/evaluate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages }), // Send the full chat history
+        body: JSON.stringify({ messages }),
       });
-      const feedback = await response.json();
-      // Here you would navigate to a new page or show a modal with the feedback
-      alert("Feedback: " + feedback.analysis);
+      const data = await response.json();
+      setFeedback(data.analysis); // Store the AI response
+      setShowModal(true); // Open the pop-up
     } catch (error) {
       console.error("Evaluation error:", error);
     } finally {
@@ -93,16 +95,19 @@ export default function SimulatorPage() {
   return (
     <div className="flex flex-col h-screen bg-gray-50 p-4 md:p-6 font-sans">
       {/* Header Section */}
-      <div className="max-w-4xl mx-auto w-full mb-6">
-        <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2 tracking-tight">
-          <Sparkles className="text-blue-600" /> Kinetic Simulator
-        </h1>
-        <p className="text-sm text-gray-500 font-medium mt-1">
-          Negotiating with Mr. Perera • Budget: 15k • Deadline: Friday
-        </p>
+      <div className="max-w-4xl mx-auto w-full mb-6 flex justify-between items-end">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2 tracking-tight">
+            <Sparkles className="text-blue-600" /> Kinetic Simulator
+          </h1>
+          <p className="text-sm text-gray-500 font-medium mt-1">
+            Negotiating with Mr. Perera • Budget: 15k • Deadline: Friday
+          </p>
+        </div>
         <button
           onClick={handleEndSimulation}
-          className="bg-red-50 text-red-600 px-4 py-2 rounded-lg font-bold text-sm hover:bg-red-100 transition-colors"
+          disabled={isLoading}
+          className="bg-red-50 text-red-600 px-4 py-2 rounded-lg font-bold text-sm hover:bg-red-100 transition-colors disabled:opacity-50"
         >
           End Simulation & Get Feedback
         </button>
@@ -113,26 +118,17 @@ export default function SimulatorPage() {
         {/* Messages Area */}
         <div className="flex-1 overflow-y-auto p-6 space-y-8">
           {messages.map((m) => (
-            <div
-              key={m.id}
-              className={`flex gap-4 ${m.role === "user" ? "justify-end" : "justify-start"}`}
-            >
+            <div key={m.id} className={`flex gap-4 ${m.role === "user" ? "justify-end" : "justify-start"}`}>
               {m.role !== "user" && (
                 <div className="w-10 h-10 rounded-full bg-blue-50 border border-blue-100 flex items-center justify-center shrink-0">
                   <Bot className="w-6 h-6 text-blue-600" />
                 </div>
               )}
-
-              <div
-                className={`px-5 py-3 rounded-2xl max-w-[80%] text-sm leading-relaxed shadow-sm ${
-                  m.role === "user"
-                    ? "bg-blue-600 text-white rounded-br-none"
-                    : "bg-gray-100 text-gray-800 rounded-bl-none"
-                }`}
-              >
+              <div className={`px-5 py-3 rounded-2xl max-w-[80%] text-sm leading-relaxed shadow-sm ${
+                m.role === "user" ? "bg-blue-600 text-white rounded-br-none" : "bg-gray-100 text-gray-800 rounded-bl-none"
+              }`}>
                 {m.content}
               </div>
-
               {m.role === "user" && (
                 <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center shrink-0">
                   <User className="w-6 h-6 text-gray-600" />
@@ -148,7 +144,7 @@ export default function SimulatorPage() {
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Modern Input Area */}
+        {/* Input Area */}
         <div className="p-4 bg-gray-50 border-t border-gray-100">
           <form onSubmit={sendMessage} className="relative flex items-center">
             <input
@@ -168,6 +164,22 @@ export default function SimulatorPage() {
           </form>
         </div>
       </div>
+
+      {/* Feedback Card - Integrated into UI Theme */}
+      {showModal && (
+        <div className="fixed bottom-6 right-6 max-w-sm w-full bg-white rounded-3xl p-6 shadow-xl border border-gray-100 z-50 animate-in slide-in-from-right duration-500">
+          <h2 className="text-lg font-bold text-gray-900 mb-2">Simulation Review</h2>
+          <div className="max-h-60 overflow-y-auto whitespace-pre-line text-xs text-gray-600 leading-relaxed mb-4 bg-gray-50 p-3 rounded-xl border border-gray-100">
+            {feedback}
+          </div>
+          <button
+            onClick={() => setShowModal(false)}
+            className="w-full bg-gray-900 hover:bg-black text-white font-bold py-2.5 rounded-xl text-sm transition-all"
+          >
+            Close
+          </button>
+        </div>
+      )}
     </div>
   );
 }
