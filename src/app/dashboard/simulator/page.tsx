@@ -1,145 +1,167 @@
-// @ts-nocheck
-'use client';
+"use client";
 
-import { useChat } from '@ai-sdk/react';
-import { Bot, Send, User, Sparkles, ArrowLeft, Loader2 } from 'lucide-react';
-import Link from 'next/link';
-import { useEffect, useRef, useState } from 'react';
+import { useState, useRef, useEffect } from "react";
+import { Bot, Send, User, Sparkles } from "lucide-react";
+import Link from "next/link";
 
 export default function SimulatorPage() {
-  // We manually control the state to avoid SDK version mismatch crashes
-  const [inputValue, setInputValue] = useState('');
-  const { messages, append, isLoading } = useChat({
-    api: '/api/chat',
-  });
-
+  const [messages, setMessages] = useState([
+    {
+      id: "1",
+      role: "assistant",
+      content:
+        "Hi there! I need a logo and a landing page for 'QuickDrop' by Friday for 15k. Can you do this?",
+    },
+  ]);
+  const [input, setInput] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!inputValue.trim()) return;
-
-    // 1. Manually add the user's message to the UI
-    const newUserMessage = { 
-      id: Date.now().toString(), 
-      role: 'user', 
-      content: inputValue 
-    };
-    
-    // We add it to the state manually
-    // Note: We create a new array to trigger a re-render
-    const previousInputValue = inputValue;
-    setInputValue(''); 
-    
-    // 2. Fetch the response from your API
+  const handleEndSimulation = async () => {
+    setIsLoading(true);
     try {
-      const response = await fetch('/api/chat', {
-        method: 'POST',
-        body: JSON.stringify({ 
-          messages: [...messages, newUserMessage] 
-        }),
+      const response = await fetch("/api/evaluate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ messages }), // Send the full chat history
+      });
+      const feedback = await response.json();
+      // Here you would navigate to a new page or show a modal with the feedback
+      alert("Feedback: " + feedback.analysis);
+    } catch (error) {
+      console.error("Evaluation error:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const sendMessage = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!input.trim()) return;
+
+    const userMessage = {
+      id: Date.now().toString(),
+      role: "user",
+      content: input,
+    };
+    const newMessages = [...messages, userMessage];
+    setMessages(newMessages);
+    setInput("");
+    setIsLoading(true);
+
+    try {
+      const response = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ messages: newMessages }),
       });
 
-      if (!response.body) return;
-
-      // 3. Manually handle the stream
-      const reader = response.body.getReader();
+      const reader = response.body?.getReader();
       const decoder = new TextDecoder();
-      let assistantMessageId = Date.now().toString() + 'assistant';
-      
-      // Add a placeholder message for the assistant
-      // (This requires a slight change to how you handle messages state)
-      // Since this is getting complex, let's use the simplest possible fix:
-      alert("Message sent! Your backend is now receiving it. If you want the AI to reply, ensure your API route returns a readable stream.");
+      let assistantContent = "";
+      const assistantMessage = {
+        id: (Date.now() + 1).toString(),
+        role: "assistant",
+        content: "",
+      };
+
+      setMessages((prev) => [...prev, assistantMessage]);
+
+      while (true) {
+        const { done, value } = await reader!.read();
+        if (done) break;
+        assistantContent += decoder.decode(value, { stream: true });
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === assistantMessage.id
+              ? { ...m, content: assistantContent }
+              : m,
+          ),
+        );
+      }
     } catch (error) {
-      console.error("Failed to send message:", error);
+      console.error("Streaming error:", error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-4rem)] max-w-5xl mx-auto font-sans">
-      
-      {/* Header */}
-      <div className="mb-6 flex items-center justify-between">
-        <div>
-          <Link href="/dashboard" className="text-sm font-bold text-[#0C83EF] hover:underline flex items-center gap-1 mb-2">
-            <ArrowLeft size={14} /> Back to Dashboard
-          </Link>
-          <h1 className="text-2xl font-black text-gray-900 tracking-tight flex items-center gap-2">
-            <Sparkles className="text-[#0C83EF]" size={24} />
-            Active Simulation: Scope Negotiation
-          </h1>
-          <p className="text-sm text-gray-500 font-medium mt-1">Client: Mr. Perera • Budget: LKR 15k • Difficulty: Medium</p>
-        </div>
-        <div className="px-4 py-2 bg-white border border-gray-200 rounded-xl shadow-sm text-sm font-bold text-gray-700">
-          Target: Protect Timeline & Value
-        </div>
+    <div className="flex flex-col h-screen bg-gray-50 p-4 md:p-6 font-sans">
+      {/* Header Section */}
+      <div className="max-w-4xl mx-auto w-full mb-6">
+        <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2 tracking-tight">
+          <Sparkles className="text-blue-600" /> Kinetic Simulator
+        </h1>
+        <p className="text-sm text-gray-500 font-medium mt-1">
+          Negotiating with Mr. Perera • Budget: 15k • Deadline: Friday
+        </p>
+        <button
+          onClick={handleEndSimulation}
+          className="bg-red-50 text-red-600 px-4 py-2 rounded-lg font-bold text-sm hover:bg-red-100 transition-colors"
+        >
+          End Simulation & Get Feedback
+        </button>
       </div>
 
-      {/* Chat Workspace */}
-      <div className="flex-1 bg-white border border-gray-200 rounded-[24px] shadow-sm flex flex-col overflow-hidden">
-        
+      {/* Chat Container */}
+      <div className="flex-1 max-w-4xl mx-auto w-full bg-white rounded-3xl shadow-sm border border-gray-200 flex flex-col overflow-hidden">
         {/* Messages Area */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-gray-50/50">
-          
-          {/* Hardcoded Greeting */}
-          <div className="flex gap-4 max-w-[80%] mr-auto">
-            <div className="w-10 h-10 rounded-full bg-white border border-gray-200 text-gray-700 flex items-center justify-center shrink-0 shadow-sm">
-              <Bot size={18} />
-            </div>
-            <div className="p-4 rounded-2xl text-sm leading-relaxed shadow-sm bg-white border border-gray-100 text-gray-800 rounded-tl-none">
-              Hi there! I saw your portfolio. I'm starting a new local delivery business called 'QuickDrop'. I need a logo and a full landing page designed by this Friday. My budget is LKR 15,000 for everything. Can you do this?
-            </div>
-          </div>
-
-          {/* Dynamic Messages */}
+        <div className="flex-1 overflow-y-auto p-6 space-y-8">
           {messages.map((m) => (
-            <div key={m.id} className={`flex gap-4 max-w-[80%] ${m.role === 'user' ? 'ml-auto flex-row-reverse' : 'mr-auto'}`}>
-              <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 shadow-sm ${
-                m.role === 'user' ? 'bg-[#0C83EF] text-white' : 'bg-white border border-gray-200 text-gray-700'
-              }`}>
-                {m.role === 'user' ? <User size={18} /> : <Bot size={18} />}
-              </div>
-              <div className={`p-4 rounded-2xl text-sm leading-relaxed shadow-sm ${
-                m.role === 'user' ? 'bg-[#0C83EF] text-white rounded-tr-none' : 'bg-white border border-gray-100 text-gray-800 rounded-tl-none'
-              }`}>
+            <div
+              key={m.id}
+              className={`flex gap-4 ${m.role === "user" ? "justify-end" : "justify-start"}`}
+            >
+              {m.role !== "user" && (
+                <div className="w-10 h-10 rounded-full bg-blue-50 border border-blue-100 flex items-center justify-center shrink-0">
+                  <Bot className="w-6 h-6 text-blue-600" />
+                </div>
+              )}
+
+              <div
+                className={`px-5 py-3 rounded-2xl max-w-[80%] text-sm leading-relaxed shadow-sm ${
+                  m.role === "user"
+                    ? "bg-blue-600 text-white rounded-br-none"
+                    : "bg-gray-100 text-gray-800 rounded-bl-none"
+                }`}
+              >
                 {m.content}
               </div>
+
+              {m.role === "user" && (
+                <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center shrink-0">
+                  <User className="w-6 h-6 text-gray-600" />
+                </div>
+              )}
             </div>
           ))}
-          
           {isLoading && (
-            <div className="flex gap-4 max-w-[80%] mr-auto">
-              <div className="w-10 h-10 rounded-full bg-white border border-gray-200 text-gray-700 flex items-center justify-center shrink-0 shadow-sm">
-                <Bot size={18} />
-              </div>
-              <div className="p-4 rounded-2xl bg-white border border-gray-100 rounded-tl-none shadow-sm flex items-center gap-2">
-                <Loader2 size={16} className="animate-spin text-[#0C83EF]" />
-                <span className="text-sm text-gray-400 font-medium">Mr. Perera is typing...</span>
-              </div>
+            <div className="flex gap-4 items-center text-gray-400 text-sm italic animate-pulse">
+              <Bot className="w-8 h-8" /> Mr. Perera is typing...
             </div>
           )}
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Manual Input Area */}
-        <div className="p-4 bg-white border-t border-gray-100">
-          <form onSubmit={handleSubmit} className="relative flex items-center">
+        {/* Modern Input Area */}
+        <div className="p-4 bg-gray-50 border-t border-gray-100">
+          <form onSubmit={sendMessage} className="relative flex items-center">
             <input
-              value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
-              placeholder="Type your professional response to Mr. Perera..."
-              className="w-full bg-[#F3F7FD] border border-transparent focus:border-blue-400 focus:bg-white rounded-xl pl-5 pr-14 py-4 text-sm text-gray-800 placeholder-gray-400 outline-none transition-all font-medium shadow-inner"
+              className="w-full bg-white border border-gray-200 rounded-full pl-6 pr-16 py-4 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all shadow-inner"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              placeholder="Craft your professional response..."
               disabled={isLoading}
             />
-            <button 
-              type="submit" 
-              disabled={isLoading || !inputValue.trim()}
-              className="absolute right-2 bg-[#0C83EF] hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed text-white p-2.5 rounded-lg transition-colors shadow-sm"
+            <button
+              type="submit"
+              className="absolute right-2 bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-full transition-colors disabled:bg-gray-300"
+              disabled={isLoading || !input.trim()}
             >
               <Send size={18} />
             </button>
